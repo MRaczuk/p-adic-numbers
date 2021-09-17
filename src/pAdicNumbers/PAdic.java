@@ -2,7 +2,7 @@ package pAdicNumbers;
 
 import java.math.BigInteger;
 
-public class PAdicc {
+public class PAdic {
     private final BigInteger num;
     private final int val;
     private final int p;
@@ -10,20 +10,20 @@ public class PAdicc {
     private static BigInteger almostZero;
     private static boolean updateNeeded = true;
 
-    public PAdicc(String s, int val, int p){
+    public PAdic(String s, int val, int p){
         num = new BigInteger(s);
         this.val = val;
         this.p = p;
     }
 
-    public PAdicc(BigInteger n, int val, int p){
+    public PAdic(BigInteger n, int val, int p){
         num = n;
         if (num.equals(BigInteger.ZERO)) this.val = Integer.MAX_VALUE;
         else this.val = val;
         this.p = p;
     }
 
-    public PAdicc(BigInteger n, int p){
+    public PAdic(BigInteger n, int p){
         int val1 = 0;
         BigInteger bigP = BigInteger.valueOf(p);
         while (n.mod(bigP).equals(BigInteger.ZERO)){
@@ -72,7 +72,7 @@ public class PAdicc {
         return almostZero;
     }
     
-    public PAdicc add(PAdicc a){
+    public PAdic add(PAdic a){
         if (p != a.p) throw new FieldError(p, a.p);
         int diff = val - a.val;
         BigInteger shift = BigInteger.valueOf((int) Math.pow(p, Math.abs(diff)));
@@ -85,23 +85,23 @@ public class PAdicc {
             sumVal ++;
         }
         sumNum = sumNum.mod(this.getAlmostZero());
-        return new PAdicc(sumNum, sumVal, p);
+        return new PAdic(sumNum, sumVal, p);
     }
     
-    public PAdicc mul(PAdicc a){
+    public PAdic mul(PAdic a){
         BigInteger prodNum = this.num.multiply(a.num);
         int prodVal = this.val + a.val;
         prodNum = prodNum.mod(this.getAlmostZero());
-        return new PAdicc(prodNum, prodVal, p);
+        return new PAdic(prodNum, prodVal, p);
     }
     
-    public PAdicc neg(){
+    public PAdic neg(){
         BigInteger negNum = this.num;
         negNum = this.getAlmostZero().subtract(negNum);
-        return new PAdicc(negNum, this.val, p);
+        return new PAdic(negNum, this.val, p);
     }
     
-    public PAdicc sub(PAdicc a){
+    public PAdic sub(PAdic a){
         return this.add(a.neg());
     }
     
@@ -138,7 +138,7 @@ public class PAdicc {
         return out;
     }
     
-    public PAdicc inv(){
+    public PAdic inv(){
         int n = logFloor2(precision) + 1;
         BigInteger TWO = BigInteger.valueOf(2);
         BigInteger pPow = BigInteger.valueOf(p);
@@ -148,10 +148,10 @@ public class PAdicc {
             inv = inv.multiply(TWO.subtract(num.multiply(inv))).mod(pPow);
         }
         int invVal = -val;
-        return new PAdicc(inv, invVal, p);
+        return new PAdic(inv, invVal, p);
     }
     
-    public PAdicc div(PAdicc a){
+    public PAdic div(PAdic a){
         if (a.num.equals(BigInteger.ZERO)) throw new RuntimeException("Division by zero");
         return this.mul(a.inv());
     }
