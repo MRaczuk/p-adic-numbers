@@ -2,11 +2,18 @@ package pAdicNumbers;
 
 import java.math.BigInteger;
 
+/**
+ * Class representing p-adic numbers.
+ * The numbers are represented in the form m = n * p^(val)
+ * where val is p-adic valuation of m.
+ * (val = Integer.MAX_VALUE for m = 0)
+ */
 public class PAdic {
     private final BigInteger num;
     private final int val;
     private final int p;
     private static int precision = 1000;
+    
     private static BigInteger almostZero;
     private static boolean updateNeeded = true;
 
@@ -23,6 +30,11 @@ public class PAdic {
         this.p = p;
     }
 
+    /**
+     * Constructs p-adic number from BigInteger
+     * @param n value of p-adic number
+     * @param p prime
+     */
     public PAdic(BigInteger n, int p){
         int val1 = 0;
         BigInteger bigP = BigInteger.valueOf(p);
