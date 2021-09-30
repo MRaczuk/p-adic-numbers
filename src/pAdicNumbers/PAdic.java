@@ -1,6 +1,9 @@
 package pAdicNumbers;
 
+import Poly.Poly;
+
 import java.math.BigInteger;
+import java.util.LinkedList;
 
 /**
  * Class representing p-adic numbers.
@@ -84,6 +87,8 @@ public class PAdic {
      * @param p prime
      */
     public PAdic(BigInteger n, int p){
+        this.p = p;
+        if (n.equals(BigInteger.ZERO)) {this.val = Integer.MAX_VALUE; num = n; return;}
         int val1 = 0;
         BigInteger bigP = BigInteger.valueOf(p);
         while (n.mod(bigP).equals(BigInteger.ZERO)){
@@ -93,7 +98,6 @@ public class PAdic {
         num = n;
         if (num.equals(BigInteger.ZERO)) val1 = Integer.MAX_VALUE;
         this.val = val1;
-        this.p = p;
     }
 
     /**
@@ -103,6 +107,19 @@ public class PAdic {
      */
     public PAdic(int m, int p){
         this(BigInteger.valueOf(m), p);
+    }
+
+    /**
+     * Constructs p-adic number from rational number n/m. 
+     * @param m numerator
+     * @param n denominator
+     * @param p prime
+     */
+    public PAdic(int n, int m, int p){
+        PAdic x = (new PAdic(n, p)).div(new PAdic(m, p));
+        this.num = x.num;
+        this.val = x.val;
+        this.p = p;
     }
 
     private static byte charToByte(char c){
@@ -153,7 +170,11 @@ public class PAdic {
     public PAdic add(PAdic a){
         if (p != a.p) throw new FieldError(p, a.p);
         int diff = val - a.val;
-        BigInteger shift = BigInteger.valueOf((int) Math.pow(p, Math.abs(diff)));
+        //BigInteger shift = BigInteger.valueOf((int) Math.pow(p, Math.abs(diff)));
+        //System.out.println(Math.pow(p, Math.abs(diff)) + " vs " + pow(p, Math.abs(diff)));
+        //BigInteger shift = BigInteger.valueOf(pow(p, Math.abs(diff)));
+        //System.out.println(diff);
+        BigInteger shift = BigInteger.valueOf(p).modPow(BigInteger.valueOf(Math.abs(diff)), this.getAlmostZero());
         BigInteger sumNum;
         if (diff < 0) sumNum = num.add(a.num.multiply(shift));
         else sumNum = a.num.add(num.multiply(shift));
@@ -162,7 +183,7 @@ public class PAdic {
             sumNum = sumNum.divide(BigInteger.valueOf(p));
             sumVal ++;
         }
-        sumNum = sumNum.mod(this.getAlmostZero());
+        //sumNum = sumNum.mod(this.getAlmostZero());
         return new PAdic(sumNum, sumVal, p);
     }
     
@@ -219,6 +240,12 @@ public class PAdic {
         }
         return digits;
     }
+
+    private int pow(int base, int exp){
+        if (exp == 0) return 1;
+        if (exp % 2 == 0) return pow((base * base), exp / 2);
+        return  (base * pow((base * base), exp / 2) );
+    }
     
     private int powModulo(int base, int exp){
         base = base % p;
@@ -271,8 +298,61 @@ public class PAdic {
         return this.div(new PAdic(a, p));
     }
     
+    public static PAdic Newton(Poly p, int x, int prime){
+        System.out.println(x);
+        PAdic prev = new PAdic(x, prime), curr = new PAdic(0, prime);
+        Poly q = p.derivative();
+        if (q.evaluate(x) == 0) throw new ArithmeticException("Division by 0");
+        for (int i = 0; i < PAdic.precision; i++){
+            curr = prev.sub(p.evaluate(prev).div(q.evaluate(prev)));
+            //System.out.println(p.evaluate(prev));
+            //System.out.println(q.evaluate(prev).inv());
+            //System.out.println(p.evaluate(prev).div(q.evaluate(prev)));
+            //System.out.println(p.evaluate(prev).div(q.evaluate(prev)).neg());
+            //System.out.println(prev);
+            //System.out.println(prev.add(p.evaluate(prev).div(q.evaluate(prev)).neg()));
+            System.out.println(curr);
+            prev = curr;
+        }
+        return curr;
+    }
+    
+    /**
+     * Searches for arbitrary root of given polynomial using
+     * Generalized Hensel Lemma.
+     * @param p polynomial
+     * @param n highest n for which GHL is checked before giving up
+     * @param prime prime         
+     * @return arbitrary root or null in case of giving up. Please note that returining null doesn't
+     * mean that the root doesn't exist. 
+     */
+    public static PAdic GHL(Poly p, int n, int prime){
+        Poly q = p.derivative();
+        int pow = 1, x = 1;
+        LinkedList<Integer> prev = new LinkedList<Integer>();
+        LinkedList<Integer> curr = new LinkedList<Integer>();
+        curr.add(0);
+        for (int i = 0; i <= n; i++){
+            for (int k = 0; k < 2; k++) {
+                prev = curr;
+                curr = new LinkedList<Integer>();
+                for (int r : prev) for (int j = 0; j < prime; j++){ 
+                    if (p.evaluate(r + j * pow, pow * prime) == 0) curr.add(r + j * pow);
+                }
+                pow *= prime;
+            }
+            if (prev.isEmpty()) throw new RootDoesntExist(p, prime);
+            for (int r : prev){
+                int v = q.evaluate(r, x * prime);
+                if (v % (x * prime) != 0 && v % x == 0) return Newton(p, r, prime);
+            }
+            x *= prime;
+        }
+        return null;
+    }
+    
     public void print(int digits){
-        if (p > 7) { System.out.println("Error, p > 7"); return; }
+        if (p > 31) { System.out.println("Error, p > 31"); return; }
         StringBuilder s = new StringBuilder();
         BigInteger copy = num;
         BigInteger bigP = BigInteger.valueOf(p);
@@ -280,7 +360,8 @@ public class PAdic {
         for (int i = 0; i < k && i < digits; i++) {s.append('0'); digits--;}
         for (int i = 0; i < digits; i++){
             BigInteger rem = copy.mod(bigP);
-            s.append(rem.toString());
+            if (rem.compareTo(BigInteger.valueOf(10)) < 0) s.append(rem.toString());
+            else s.append((char) ('A' + rem.intValue() - 10));
             copy = copy.subtract(rem).divide(bigP);
             k++;
             if (k == 0) s.append('.');
@@ -296,11 +377,12 @@ public class PAdic {
         BigInteger copy = num;
         BigInteger bigP = BigInteger.valueOf(p);
         int k = val;
-        int digits = 84;
+        int digits = 284;
         for (int i = 0; i < k && i < digits; i++) {s.append('0'); digits--;}
         for (int i = 0; i < digits; i++){
             BigInteger rem = copy.mod(bigP);
-            s.append(rem.toString());
+            if (rem.compareTo(BigInteger.valueOf(10)) < 0) s.append(rem.toString());
+            else s.append((char) ('A' + rem.intValue() - 10));
             copy = copy.subtract(rem).divide(bigP);
             k++;
             if (k == 0) s.append('.');
