@@ -431,9 +431,6 @@ public class PAdic {
             }
         }
         s.reverse();
-        //while (s.charAt(0) == '0' && s.charAt(1) != '.'){
-            //s.deleteCharAt(0);
-        //}
         return s.toString();
     }
 

@@ -82,7 +82,7 @@ public class Poly {
         return out;
     }
     
-    public Poly derivative(){
+    public Poly derivative(){//
         ArrayList<Integer> derArr = (ArrayList<Integer>) this.coeff.clone();
         derArr.remove(0);
         for (int i = 0; i < derArr.size(); i++){
