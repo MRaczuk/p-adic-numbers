@@ -16,7 +16,19 @@ public class Poly {
         for (int i = 0; i < coeff.size(); i++) if (coeff.get(i) != 0) deg = i;
         this.deg = deg;
         if (deg < 0) this.coeff = null;
-        else this.coeff = coeff;
+        else this.coeff = (ArrayList<Integer>) coeff.clone();
+    }
+
+    public Poly(int[] coeff){
+        int deg = -1;
+        for (int i = 0; i < coeff.length ; i++) if (coeff[i] != 0) deg = i;
+        this.deg = deg;
+        if (deg < 0) this.coeff = null;
+        else {
+            ArrayList<Integer> ALcoeff = new ArrayList<Integer>();
+            for (int c : coeff) ALcoeff.add(c);
+            this.coeff = ALcoeff;
+        }
     }
     
     public boolean isZero(){

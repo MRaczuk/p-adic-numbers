@@ -170,20 +170,18 @@ public class PAdic {
     public PAdic add(PAdic a){
         if (p != a.p) throw new FieldError(p, a.p);
         int diff = val - a.val;
-        //BigInteger shift = BigInteger.valueOf((int) Math.pow(p, Math.abs(diff)));
-        //System.out.println(Math.pow(p, Math.abs(diff)) + " vs " + pow(p, Math.abs(diff)));
-        //BigInteger shift = BigInteger.valueOf(pow(p, Math.abs(diff)));
-        //System.out.println(diff);
         BigInteger shift = BigInteger.valueOf(p).modPow(BigInteger.valueOf(Math.abs(diff)), this.getAlmostZero());
         BigInteger sumNum;
         if (diff < 0) sumNum = num.add(a.num.multiply(shift));
         else sumNum = a.num.add(num.multiply(shift));
         int sumVal = Math.min(val, a.val);
+        if (sumVal == Integer.MAX_VALUE) return new PAdic(0, p);
+        if (sumNum.compareTo(BigInteger.ZERO) == 0) return new PAdic(0, p);
         while (sumNum.mod(BigInteger.valueOf(p)).signum() == 0){
             sumNum = sumNum.divide(BigInteger.valueOf(p));
             sumVal ++;
+            if (sumVal == Integer.MAX_VALUE) return new PAdic(0, p);
         }
-        //sumNum = sumNum.mod(this.getAlmostZero());
         return new PAdic(sumNum, sumVal, p);
     }
     
@@ -219,6 +217,7 @@ public class PAdic {
     public PAdic neg(){
         BigInteger negNum = this.num;
         negNum = this.getAlmostZero().subtract(negNum);
+        PAdic out = new PAdic(negNum, this.val, p);
         return new PAdic(negNum, this.val, p);
     }
     
@@ -299,19 +298,12 @@ public class PAdic {
     }
     
     public static PAdic Newton(Poly p, int x, int prime){
-        System.out.println(x);
         PAdic prev = new PAdic(x, prime), curr = new PAdic(0, prime);
         Poly q = p.derivative();
         if (q.evaluate(x) == 0) throw new ArithmeticException("Division by 0");
+        PAdic zero = new PAdic(0, 7);
         for (int i = 0; i < PAdic.precision; i++){
             curr = prev.sub(p.evaluate(prev).div(q.evaluate(prev)));
-            //System.out.println(p.evaluate(prev));
-            //System.out.println(q.evaluate(prev).inv());
-            //System.out.println(p.evaluate(prev).div(q.evaluate(prev)));
-            //System.out.println(p.evaluate(prev).div(q.evaluate(prev)).neg());
-            //System.out.println(prev);
-            //System.out.println(prev.add(p.evaluate(prev).div(q.evaluate(prev)).neg()));
-            System.out.println(curr);
             prev = curr;
         }
         return curr;
@@ -350,6 +342,52 @@ public class PAdic {
         }
         return null;
     }
+
+    /**
+     * Prints digits of p-adic number with respect to given set of representatives. Incorrect
+     * representatives set results in UB.
+     * @param digits number of digits to be written
+     * @param representatives (array of size p of elements of Z_p, i-th representative is to be congruent to i mod p) 
+     */
+    public void printRepresented(int digits, PAdic[] representatives){
+        if (p > 31) { System.out.println("Error, p > 31"); return; }
+        for (int i = 0; i < representatives.length; i++){
+            representatives[i] = new PAdic(representatives[i].num.mod(this.getAlmostZero()), this.p); 
+        }
+        StringBuilder s = new StringBuilder();
+        BigInteger copy = num;
+        BigInteger bigP = BigInteger.valueOf(p);
+        BigInteger shift = bigP.modPow(BigInteger.valueOf(representatives[0].val) , this.getAlmostZero());
+        int k = val;
+        for (int i = 0; i < k && i < digits; i++) {s.append('0'); digits--;}
+        for (int i = 0; i < digits; i++){
+            BigInteger rem = copy.mod(bigP);
+            if (rem.compareTo(BigInteger.valueOf(10)) < 0) s.append(rem.toString());
+            else s.append((char) ('A' + rem.intValue() - 10));
+            if (copy.compareTo(this.getAlmostZero()) < 0) copy = copy.add(this.getAlmostZero());
+            if (rem.equals(BigInteger.ZERO)) copy = copy.subtract(representatives[0].num.multiply(shift)).divide(bigP);
+            else copy = copy.subtract(representatives[rem.intValue()].num).divide(bigP);
+            k++;
+            if (k == 0) s.append('.');
+        }
+        s.reverse();
+        System.out.println(s);
+    }
+
+    /**
+     * Returnes Teichmuller representatives for Q_this.p
+     * @param p prime
+     * @return Teichmuller representatives
+     */
+    public static PAdic[] getTeichmullerRepresentatives(int p){
+        PAdic[] out = new PAdic[p];
+        int[] coeff = new int[p + 1];
+        coeff[1] = -1;
+        coeff[p] = 1;
+        Poly poly = new Poly(coeff);
+        for (int i = 0; i < p; i++) out[i] = Newton(poly, i, p);
+        return out;
+    }
     
     public void print(int digits){
         if (p > 31) { System.out.println("Error, p > 31"); return; }
@@ -373,6 +411,7 @@ public class PAdic {
     @Override
     public String toString() {
         if (num.equals(BigInteger.ZERO)) return "0";
+        if (p > 31) return "p > 31";
         StringBuilder s = new StringBuilder();
         BigInteger copy = num;
         BigInteger bigP = BigInteger.valueOf(p);
@@ -392,9 +431,9 @@ public class PAdic {
             }
         }
         s.reverse();
-        while (s.charAt(0) == '0' && s.charAt(1) != '.'){
-            s.deleteCharAt(0);
-        }
+        //while (s.charAt(0) == '0' && s.charAt(1) != '.'){
+            //s.deleteCharAt(0);
+        //}
         return s.toString();
     }
 
